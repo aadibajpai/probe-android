@@ -39,14 +39,15 @@ public class ResubmitTask<A extends AppCompatActivity> extends NetworkProgressAs
     private static boolean perform(Context c, Measurement m) throws IOException {
         File file = Measurement.getEntryFile(c, m.id, m.test_name);
         String input = FileUtils.readFileToString(file, Charset.forName("UTF-8"));
-        MKCollectorResubmitTask task = new MKCollectorResubmitTask(
-                input,
+        oonimobile.ResubmitTask task = new oonimobile.ResubmitTask(
                 c.getString(R.string.software_name),
-                BuildConfig.VERSION_NAME);
+                BuildConfig.VERSION_NAME,
+                input
+        );
         task.setTimeout(getTimeout(file.length()));
         task.setCABundlePath(c.getCacheDir() + "/" + Application.CA_BUNDLE);
-        MKCollectorResubmitResults results = task.perform();
-        if (results.isGood()) {
+        oonimobile.ResubmitResults results = task.run();
+        if (results.getGood()) {
             String output = results.getUpdatedSerializedMeasurement();
             FileUtils.writeStringToFile(file, output, Charset.forName("UTF-8"));
             m.report_id = results.getUpdatedReportID();
@@ -57,7 +58,7 @@ public class ResubmitTask<A extends AppCompatActivity> extends NetworkProgressAs
             Log.w(MKCollectorResubmitTask.class.getSimpleName(), results.getLogs());
             // TODO decide what to do with logs (append on log file?)
         }
-        return results.isGood();
+        return results.getGood();
     }
 
     public static long getTimeout(long length) {
