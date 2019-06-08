@@ -45,8 +45,24 @@ public class ResubmitTask<A extends AppCompatActivity> extends NetworkProgressAs
                 input
         );
         task.setTimeout(getTimeout(file.length()));
-        task.setCABundlePath(c.getCacheDir() + "/" + Application.CA_BUNDLE);
-        oonimobile.ResubmitResults results = task.run();
+        oonimobile.ResubmitHandle handle = task.start();
+        for (;;) {
+            oonimobile.LogMessage logMessage = handle.nextLogMessage();
+            if (logMessage == null) {
+                break;
+            }
+            if (logMessage.getLogLevel().compareTo("DEBUG") == 0) {
+                Log.d("engine", logMessage.getMessage());
+            } else if (logMessage.getLogLevel().compareTo("INFO") == 0) {
+                Log.i("engine", logMessage.getMessage());
+            } else if (logMessage.getLogLevel().compareTo("WARNING") == 0) {
+                Log.w("engine", logMessage.getMessage());
+            } else {
+                Log.wtf("engine", logMessage.getMessage());
+            }
+            // TODO(lorenzoPrimi): decide whether to save also on file.
+        }
+        oonimobile.ResubmitResults results = handle.results();
         if (results.getGood()) {
             String output = results.getUpdatedSerializedMeasurement();
             FileUtils.writeStringToFile(file, output, Charset.forName("UTF-8"));
@@ -54,9 +70,6 @@ public class ResubmitTask<A extends AppCompatActivity> extends NetworkProgressAs
             m.is_uploaded = true;
             m.is_upload_failed = false;
             m.save();
-        } else {
-            Log.w(MKCollectorResubmitTask.class.getSimpleName(), results.getLogs());
-            // TODO decide what to do with logs (append on log file?)
         }
         return results.getGood();
     }
